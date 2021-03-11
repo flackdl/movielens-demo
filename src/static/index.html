@@ -4,11 +4,153 @@
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<title>MovieLens demo</title>
+	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.8.2/css/bulma.min.css">
+	<link rel="stylesheet" href="https://unpkg.com/buefy/dist/buefy.min.css">
 	<style>
 	</style>
 </head>
 
 <body>
-hiya
+<div id="app" class="container">
+	<section class="hero">
+		<div class="hero-body">
+			<div class="container">
+				<h1 class="title">MovieLens Demo</h1>
+				<h2 class="subtitle">A movie <strong>database</strong></h2>
+			</div>
+		</div>
+	</section>
+	<div>
+		<!-- search -->
+		<form class="columns is-multiline is-mobile" @submit="onSearch">
+			<!-- search input -->
+			<div class="column is-12">
+				<b-field>
+					<b-input placeholder="Search..." id="search" v-model="q" type="search" icon-pack="fas" size="is-large" icon="search">
+					</b-input>
+				</b-field>
+			</div>
+			<!-- cuisine filter -->
+			<b-field class="column is-6">
+				<b-taginput
+					v-model="genresChosen"
+					:data="genresAvailable"
+					size="is-small"
+					icon-pack="fas"
+					icon="globe-americas"
+					type="is-info"
+					autocomplete
+					:open-on-focus="true"
+					field="name"
+					placeholder="genres..."
+				></b-taginput>
+			</b-field>
+			<div class="column is-12 text-right">
+				<b-button native-type="submit" type="is-primary" size="is-large" :loading="isContentLoading">Search</b-button>
+			</div>
+		</form>
+		<template>
+			<b-table v-if="searchResults.length > 0" :data="searchResults" striped>
+				<b-table-column field="name" label="Title" v-slot="props">
+					{{ props.row.name }}
+				</b-table-column>
+				<b-table-column field="genres" label="Genres" v-slot="props">
+					<span v-for="genre of genresAvailable">
+						<span v-if="props.row.genres.includes(genre.id)">{{ genre.name }} </span>
+					</span>
+				</b-table-column>
+			</b-table>
+		</template>
+	</div>
+</div>
+
+<script src="https://unpkg.com/vue@2.6.11/dist/vue.js"></script>
+<script src="https://unpkg.com/buefy/dist/buefy.min.js"></script>
+<script src="https://unpkg.com/rxjs@6.5.5/bundles/rxjs.umd.min.js"></script>
+<script src="https://unpkg.com/vue-router@3.1.6/dist/vue-router.js"></script>
+<script>
+	// main app
+	let app = new Vue({
+		el: '#app',
+		data: {
+			q: '',
+			page: 1,
+			isContentLoading: false,
+			genresAvailable: [],
+			genresChosen: [],
+			searchResults: [],
+		},
+		methods: {
+			onSearch (e) {
+				// reset page since it's a new search
+				this.page = 1;
+				this.search();
+				e.preventDefault();
+			},
+			search () {
+				this.isContentLoading = true;
+
+				// fetch movies
+				this.fetchMovies().then(() => {
+					this.isContentLoading = false;
+				});
+			},
+			fetchMovies() {
+
+				const params = this.getSearchUrlParams();
+
+				// construct url
+				const url = `/api/movie/${params}`;
+
+				// fetch movies
+				return fetch(url).then((response) => {
+					if (response.ok) {
+						return response.json().then((data) => {
+							this.searchResults = data.results;
+						});
+					} else {
+						console.error(response);
+					}
+				});
+			},
+			fetchGenres() {
+
+				// construct url
+				const url = `/api/genre/`;
+
+				// fetch genres
+				return fetch(url).then((response) => {
+					if (response.ok) {
+						return response.json().then((data) => {
+							this.genresAvailable = data.results;
+						});
+					} else {
+						console.error(response);
+					}
+				});
+			},
+			getSearchUrlParams() {
+				let params = [];
+
+				// build category filters
+				this.genresChosen.forEach((genre) => {
+					params.push(`genres=${genre.id}`)
+				});
+				// add page filter
+				params = params.concat([`page=${this.page}`]);
+
+				// return url params
+				return `?search=${this.q}&${params.join('&')}`;
+			},
+		},
+		created () {
+			this.fetchGenres().then(() => {
+				this.isContentLoading = false;
+				// TODO - don't automatically search
+				this.search();
+			});
+		},
+	});
+</script>
 </body>
 </html>

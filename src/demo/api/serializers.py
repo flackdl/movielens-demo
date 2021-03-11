@@ -12,9 +12,11 @@ class GenreSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Genre
+        fields = '__all__'
 
 
 class TagSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Tag
+        fields = '__all__'

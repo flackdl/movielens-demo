@@ -21,5 +21,8 @@ class Movie(models.Model):
     genres = models.ManyToManyField(Genre)
     tags = models.ManyToManyField(Tag)
 
+    class Meta:
+        ordering = ('name',)
+
     def __str__(self):
         return self.name
