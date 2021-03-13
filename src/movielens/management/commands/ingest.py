@@ -43,6 +43,7 @@ class Command(BaseCommand):
             genre_names = row['genres'].split('|')
             genres = [Genre.objects.get_or_create(name=genre)[0] for genre in genre_names]
             movie.genres.set(genres)
+            self.stdout.write(self.style.SUCCESS('{}'.format(row['title'])))
 
         # ingest - tags
         df = pd.read_csv(os.path.join(full_path, 'tags.csv'))
@@ -56,3 +57,5 @@ class Command(BaseCommand):
             # add tag
             tag, _ = Tag.objects.get_or_create(name=row['tag'])
             movie.tags.add(tag)
+
+        self.stdout.write(self.style.SUCCESS('\n\nComplete'))
