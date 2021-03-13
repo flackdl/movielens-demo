@@ -1,6 +1,6 @@
 # MovieLens demo
 
-This is a simple web app that demonstrates ingesting the (MovieLens dataset)[https://grouplens.org/datasets/movielens/latest/]
+This is a simple web app that demonstrates ingesting the [MovieLens dataset](https://grouplens.org/datasets/movielens/latest/)
 and presenting the results in a friendly UI that can search and filter by titles, genres, and tags.
 
 ## Building
