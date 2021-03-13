@@ -5,7 +5,7 @@ and presenting the results in a friendly UI that can search and filter by titles
 
 ## Building
 
-This app is build with Python 3, Django 3, Vue, and Bulma.  The default database is sqlite but you can easily swap in PostgreSQL to make use of it's [Full Text Search](https://www.postgresql.org/docs/9.5/textsearch.html).
+This app is built with Python 3, Django 3, Vue, and Bulma.  The default database is sqlite but you can easily swap in PostgreSQL to make use of it's [Full Text Search](https://www.postgresql.org/docs/9.5/textsearch.html).
 
 Create a python virtual environment:
 
@@ -26,6 +26,10 @@ Ingest MovieLens dataset:
 
     python src/manage.py ingest
 
+Run tests:
+    
+    python src/manage.py test
+
 Run web server:
 
     python src/manage.py runserver localhost:8080
@@ -34,4 +38,4 @@ App will be running at http://localhost:8080
 
 API: http://localhost:8080/api
 
-Admin: http://localhost:8080/admin (run `python src/manage.py createsuperuser` first)
+Admin: http://localhost:8080/admin (run `python src/manage.py createsuperuser` to create an admin user first)
