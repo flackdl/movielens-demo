@@ -3,11 +3,11 @@
 <head>
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<title>MovieLens demo</title>
-	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.8.2/css/bulma.min.css">
+	<title>MovieLens Demo</title>
+	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma/css/bulma.min.css">
 	<link rel="stylesheet" href="https://unpkg.com/buefy/dist/buefy.min.css">
-	<style>
-	</style>
+	<script defer src="https://use.fontawesome.com/releases/v5.3.1/js/all.js"></script>
+	<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.2.0/css/all.css">
 </head>
 
 <body>
@@ -16,7 +16,6 @@
 		<div class="hero-body">
 			<div class="container">
 				<h1 class="title">MovieLens Demo</h1>
-				<h2 class="subtitle">A movie <strong>database</strong></h2>
 			</div>
 		</div>
 	</section>
@@ -26,38 +25,60 @@
 			<!-- search input -->
 			<div class="column is-12">
 				<b-field>
-					<b-input placeholder="Search..." id="search" v-model="q" type="search" icon-pack="fas" size="is-large" icon="search">
+					<b-input placeholder="Search..." id="search" v-model="q" type="search" size="is-large">
 					</b-input>
 				</b-field>
 			</div>
-			<!-- cuisine filter -->
+			<!-- genre filter -->
 			<b-field class="column is-6">
 				<b-taginput
 					v-model="genresChosen"
 					:data="genresAvailable"
 					size="is-small"
-					icon-pack="fas"
-					icon="globe-americas"
 					type="is-info"
 					autocomplete
+					@typing="filterGenres"
 					:open-on-focus="true"
 					field="name"
 					placeholder="genres..."
 				></b-taginput>
 			</b-field>
-			<div class="column is-12 text-right">
-				<b-button native-type="submit" type="is-primary" size="is-large" :loading="isContentLoading">Search</b-button>
+			<!-- tag filter -->
+			<b-field class="column is-6">
+				<b-taginput
+					v-model="tagsChosen"
+					:data="tagsAvailable"
+					size="is-small"
+					@typing="filterTags"
+					type="is-info"
+					autocomplete
+					:open-on-focus="true"
+					field="name"
+					placeholder="tags..."
+				></b-taginput>
+			</b-field>
+			<div class="column is-12">
+				<b-button class="is-pulled-right" native-type="submit" type="is-primary" size="is-large" :loading="isContentLoading">Search</b-button>
 			</div>
 		</form>
 		<template>
-			<b-table v-if="searchResults.length > 0" :data="searchResults" striped>
+			<b-table
+				v-if="searchResults.results.length > 0"
+				:data="searchResults.results"
+				:loading="isContentLoading"
+				striped
+				paginated
+				backend-pagination
+				@page-change="onPageChange"
+				:total="searchResults.count"
+				per-page="25"
+				icon-pack="fas"
+			>
 				<b-table-column field="name" label="Title" v-slot="props">
 					{{ props.row.name }}
 				</b-table-column>
 				<b-table-column field="genres" label="Genres" v-slot="props">
-					<span v-for="genre of genresAvailable">
-						<span v-if="props.row.genres.includes(genre.id)">{{ genre.name }} </span>
-					</span>
+					<a @click="setGenre(genre)" v-for="genre of genresForMovie(props.row)">[{{ genre.name }}] </a>
 				</b-table-column>
 			</b-table>
 		</template>
@@ -67,7 +88,6 @@
 <script src="https://unpkg.com/vue@2.6.11/dist/vue.js"></script>
 <script src="https://unpkg.com/buefy/dist/buefy.min.js"></script>
 <script src="https://unpkg.com/rxjs@6.5.5/bundles/rxjs.umd.min.js"></script>
-<script src="https://unpkg.com/vue-router@3.1.6/dist/vue-router.js"></script>
 <script>
 	// main app
 	let app = new Vue({
@@ -78,7 +98,12 @@
 			isContentLoading: false,
 			genresAvailable: [],
 			genresChosen: [],
-			searchResults: [],
+			tagsAvailable: [],
+			tagsChosen: [],
+			searchResults: {
+				count: 0,
+				results: [],
+			},
 		},
 		methods: {
 			onSearch (e) {
@@ -106,7 +131,8 @@
 				return fetch(url).then((response) => {
 					if (response.ok) {
 						return response.json().then((data) => {
-							this.searchResults = data.results;
+							this.searchResults = data;
+							console.log('results', this.searchResults);
 						});
 					} else {
 						console.error(response);
@@ -129,24 +155,76 @@
 					}
 				});
 			},
-			getSearchUrlParams() {
-				let params = [];
+			fetchTags() {
 
-				// build category filters
-				this.genresChosen.forEach((genre) => {
-					params.push(`genres=${genre.id}`)
+				// construct url
+				const url = `/api/tag/`;
+
+				// fetch tags
+				return fetch(url).then((response) => {
+					if (response.ok) {
+						return response.json().then((data) => {
+							this.tagsAvailable = data;
+						});
+					} else {
+						console.error(response);
+					}
 				});
-				// add page filter
-				params = params.concat([`page=${this.page}`]);
+			},
+			filterTags(string) {
+				this.tagsAvailable = this.tagsAvailable.filter((tag) => {
+					const re = new RegExp(string.toLowerCase());
+					return re.test(tag.name.toLowerCase());
+				});
+			},
+			filterGenres(string) {
+				this.genresAvailable = this.genresAvailable.filter((genre) => {
+					const re = new RegExp(string.toLowerCase());
+					return re.test(genre.name.toLowerCase());
+				});
+			},
+			getSearchUrlParams() {
+
+				let params = new URLSearchParams();
+
+				// search query
+				if (this.q) {
+					params.append('search', this.q);
+				}
+				// genres
+				this.genresChosen.forEach((genre) => {
+					params.append('genres', genre.id);
+				});
+				// tags
+				this.tagsChosen.forEach((tag) => {
+					params.append('tags', tag.id);
+				});
+				// page
+				params.append('page', this.page);
 
 				// return url params
-				return `?search=${this.q}&${params.join('&')}`;
+				return `?${params.toString()}`;
 			},
+			genresForMovie (movie) {
+				return this.genresAvailable.filter((genre) => {
+					return movie.genres.includes(genre.id);
+				});
+			},
+			setGenre(genre) {
+				this.genresChosen = [genre];
+				this.search();
+			},
+			onPageChange(page) {
+				this.page = page;
+				this.search();
+			}
 		},
 		created () {
-			this.fetchGenres().then(() => {
+			Promise.all([
+				this.fetchGenres(),
+				this.fetchTags(),
+			]).then(() => {
 				this.isContentLoading = false;
-				// TODO - don't automatically search
 				this.search();
 			});
 		},
